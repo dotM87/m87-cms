@@ -9,11 +9,13 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
     "@tailwindcss/vite": "^4.2.1",
     "astro": "^5.17.1",
     "tailwindcss": "^4.2.1"
   },
   "devDependencies": {
-    "daisyui": "^5.5.19"
+    "daisyui": "^5.5.19",
+    "wrangler": "^4.68.1"
   }
 }
