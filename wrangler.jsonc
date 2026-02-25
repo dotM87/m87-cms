@@ -12,5 +12,11 @@
 	},
 	"observability": {
     "enabled": true
-  }
+  },
+  "routes": [
+    {
+      "pattern": "blog.miguelzubieta.me",
+      "zone_name": "miguelzubieta.me"
+    }
+  ]
 }
