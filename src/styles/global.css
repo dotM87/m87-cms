@@ -28,5 +28,5 @@ html[data-theme="dark"] {
 }
 
 body {
-  @apply bg-[var(--color-background)] text-[var(--color-text)];
+  @apply bg-(--color-background) text-(--color-text);
 }
