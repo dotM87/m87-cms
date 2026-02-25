@@ -16,7 +16,7 @@ const { pageTitle } = Astro.props;
 			document.documentElement.setAttribute("data-theme", theme);
 		</script>
   </head>
-	<body>
+	<body class="flex flex-col min-h-screen">
 		<Navbar />
 		<slot />
 		<Footer />
