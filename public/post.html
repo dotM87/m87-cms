@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="page-container">
+    <header class="page-header page-header--row">
+      <a class="back-link" href="/">← Volver</a>
+      <button id="theme-toggle" class="btn btn-secondary" type="button">Cambiar tema</button>
+    </header>
+
+    <article class="post-content">
+      <header class="post-head">
+        <h1 id="post-title"></h1>
+        <p id="post-meta" class="meta-text"></p>
+        <div id="post-tags" class="tags"></div>
+      </header>
+      <div id="post"></div>
+    </article>
+  </main>
+
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("theme", theme);
+    }
+
+    function initTheme() {
+      const stored = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      applyTheme(stored || (prefersDark ? "dark" : "light"));
+    }
+
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      applyTheme(current === "light" ? "dark" : "light");
+    });
+
+    initTheme();
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("slug");
+
+    fetch(`/api/post/${slug}`)
+      .then(res => res.json())
+      .then(post => {
+        document.getElementById("post-title").textContent = post.title || post.slug;
+        document.getElementById("post-meta").textContent = `${post.author || "Sin autor"} · ${new Date(post.date).toLocaleString()}`;
+        const tags = document.getElementById("post-tags");
+        tags.innerHTML = (post.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("");
+        document.getElementById("post").innerHTML = post.content;
+      });
+  </script>
+</body>
+</html>

@@ -1,46 +1,70 @@
-# Astro Starter Kit: Basics
+# m87-cms
 
-```sh
-pnpm create astro@latest -- --template basics
+CMS flat-file en Node.js con panel admin, frontmatter YAML, carga de imágenes y soporte de tema claro/oscuro.
+
+## Producción (resumen)
+
+### 1) Variables de entorno
+1. Copia `.env.example` a `.env`.
+2. Genera hash de contraseña:
+   - `pnpm hash:password -- tu_clave_segura`
+3. Pega el hash en `ADMIN_PASS_HASH` y deja `ADMIN_PASS` vacío.
+
+### 2) Instalación
+- `pnpm install --prod`
+
+### 3) Correr en producción local
+- `pnpm start:prod`
+
+### 4) Correr con PM2
+- `pm2 start ecosystem.config.cjs`
+- `pm2 save`
+- `pm2 startup`
+
+### 5) Nginx + HTTPS
+- Usa [deploy/nginx.conf](deploy/nginx.conf) como base de virtual host.
+- Reemplaza `tu-dominio.com`.
+- Activa HTTPS con Certbot:
+  - `sudo certbot --nginx -d tu-dominio.com -d www.tu-dominio.com`
+
+### 6) Backups
+- Script incluido: [scripts/backup.sh](scripts/backup.sh)
+- Ejecuta manual:
+  - `bash scripts/backup.sh`
+- Recomendado en cron diario.
+
+## Endurecimiento incluido
+- Sanitización de HTML renderizado desde Markdown.
+- Cookies de sesión seguras en producción (`Secure`, `HttpOnly`, `SameSite`).
+- Rate limit para login y subida de imágenes.
+- Validación de tipo/extensión de archivos subidos.
+- Security headers HTTP (CSP, HSTS en producción, `X-Frame-Options`, etc.).
+
+## Deploy automático con GitHub Actions (SSH)
+
+Workflow incluido: [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
+
+### Secrets requeridos en GitHub
+Configura estos secrets en tu repositorio (`Settings > Secrets and variables > Actions`):
+
+- `VPS_HOST`: IP o dominio del servidor
+- `VPS_USER`: usuario SSH (ej. `deploy`)
+- `VPS_SSH_KEY`: clave privada SSH (contenido completo)
+- `VPS_PORT` (opcional): por defecto `22`
+- `VPS_APP_DIR` (opcional): ruta del proyecto en el VPS (si no se define, usa `~/apps/m87-cms`)
+
+### Bootstrap inicial en VPS (una sola vez)
+```bash
+mkdir -p ~/apps
+cd ~/apps
+git clone <tu_repo_git> m87-cms
+cd m87-cms
+cp .env.example .env
+pnpm install --prod
+pm2 start ecosystem.config.cjs --env production
+pm2 save
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
-```
-
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+### ¿Cuándo se despliega?
+- En cada `push` a `main`.
+- También manualmente desde la pestaña `Actions` con `workflow_dispatch`.
