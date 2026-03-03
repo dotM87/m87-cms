@@ -2,7 +2,7 @@
   "name": "flat-cms",
   "version": "1.0.0",
   "description": "Vanilla flat file CMS",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
     "start": "node server.js",
     "start:prod": "NODE_ENV=production node server.js",
@@ -11,6 +11,7 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
+    "express": "^4.21.2",
     "formidable": "^3.5.2",
     "gray-matter": "^4.0.3",
     "marked": "^15.0.7",

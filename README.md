@@ -1,6 +1,18 @@
 # m87-cms
 
-CMS flat-file en Node.js con panel admin, frontmatter YAML, carga de imágenes y soporte de tema claro/oscuro.
+CMS flat-file en Node.js con Express, arquitectura modular, panel admin, frontmatter YAML, carga de imágenes y soporte de tema claro/oscuro.
+
+## Arquitectura
+
+- `server.js`: entrada mínima.
+- `src/server.js`: bootstrap de servidor.
+- `src/app.js`: creación de app Express.
+- `src/routes`: definición de rutas.
+- `src/controllers`: controladores HTTP.
+- `src/services`: lógica de negocio.
+- `src/repositories`: acceso a sistema de archivos.
+- `src/middlewares`: seguridad, auth y errores centralizados.
+- `public/js`: módulos frontend (`home.js`, `post.js`, `admin.js`, `theme.js`).
 
 ## Producción (resumen)
 
