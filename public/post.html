@@ -7,10 +7,16 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <header class="site-header">
+    <div class="page-container site-header-inner">
+      <a class="site-brand-title" href="/">FlatCMS</a>
+      <p class="site-brand-sub">Cine, ideas y relatos que dejan marca</p>
+    </div>
+  </header>
+
   <main class="page-container">
     <header class="page-header page-header--row">
       <a class="back-link" href="/">← Volver</a>
-      <button id="theme-toggle" class="btn btn-secondary" type="button">Cambiar tema</button>
     </header>
 
     <article class="post-content">
@@ -22,6 +28,13 @@
       <div id="post"></div>
     </article>
   </main>
+
+  <footer class="site-footer">
+    <div class="page-container site-footer-inner site-footer-row">
+      <p>Creado por m87 · FlatCMS © 2026</p>
+      <button id="theme-toggle" class="theme-toggle-discreet" type="button">Cambiar tema</button>
+    </div>
+  </footer>
 
   <script type="module" src="/js/post.js"></script>
 </body>

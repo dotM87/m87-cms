@@ -80,7 +80,8 @@ async function loadPosts() {
     .map(post => {
       const when = new Date(post.date).toLocaleString();
       const by = post.author || "Sin autor";
-      return `<article class="admin-list-item"><div><h3>${post.title}</h3><p class="meta-text">${by} · ${when}</p></div><button class="btn btn-secondary" data-slug="${post.slug}" type="button">Editar</button></article>`;
+      const title = post.title || post.slug;
+      return `<article class="admin-list-item"><div><h3>${title}</h3><p class="meta-text">${by} · ${when}</p></div><button class="btn btn-secondary" data-slug="${post.slug}" type="button">Editar</button></article>`;
     })
     .join("");
 

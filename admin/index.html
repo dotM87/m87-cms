@@ -7,13 +7,19 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <header class="site-header">
+    <div class="page-container site-header-inner">
+      <a class="site-brand-title" href="/">FlatCMS</a>
+      <p class="site-brand-sub">Panel editorial</p>
+    </div>
+  </header>
+
   <main class="page-container">
     <header class="page-header page-header--row">
       <div>
         <h1>Admin CMS</h1>
         <p class="page-subtitle">Gestiona publicaciones y contenido</p>
       </div>
-      <button id="theme-toggle" class="btn btn-secondary" type="button">Cambiar tema</button>
     </header>
 
     <section id="login-panel" class="admin-panel hidden">
@@ -58,6 +64,13 @@
       </div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="page-container site-footer-inner site-footer-row">
+      <p>Creado por m87 · FlatCMS © 2026</p>
+      <button id="theme-toggle" class="theme-toggle-discreet" type="button">Cambiar tema</button>
+    </div>
+  </footer>
 
   <script type="module" src="/js/admin.js"></script>
 </body>

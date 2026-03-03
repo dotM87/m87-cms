@@ -40,9 +40,66 @@ body {
   line-height: 1.6;
 }
 
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.site-header-inner {
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+
+.site-brand-title {
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.site-brand-sub {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.site-footer-inner {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.site-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.site-footer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .page-container {
   width: min(980px, 100% - 2rem);
   margin: 2rem auto;
+}
+
+.site-header .page-container,
+.site-footer .page-container {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.home-intro {
+  margin-top: 0;
+  margin-bottom: 1rem;
 }
 
 .page-header {
@@ -257,11 +314,17 @@ a:hover {
   border-radius: 10px;
   padding: 0.55rem 0.95rem;
   font-size: 0.92rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .btn:hover {
   background: var(--primary-strong);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary-strong);
+  outline-offset: 2px;
 }
 
 .btn-secondary {
@@ -274,6 +337,27 @@ a:hover {
   background: var(--surface-muted);
 }
 
+.theme-toggle-discreet {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.2rem 0.3rem;
+}
+
+.theme-toggle-discreet:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.theme-toggle-discreet:focus-visible {
+  outline: 2px solid var(--primary-strong);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .input {
   width: 100%;
   border: 1px solid var(--border);
@@ -282,6 +366,18 @@ a:hover {
   border-radius: 10px;
   padding: 0.62rem 0.72rem;
   font: inherit;
+}
+
+.input::-webkit-credentials-auto-fill-button,
+.input::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+}
+
+#login-btn {
+  margin-top: 0.9rem;
 }
 
 textarea.input {
@@ -415,5 +511,10 @@ textarea.input {
 
   .btn {
     width: 100%;
+  }
+
+  .site-footer-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
