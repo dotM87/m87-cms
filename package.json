@@ -2,9 +2,16 @@
   "name": "flat-cms",
   "version": "1.0.0",
   "description": "Vanilla flat file CMS",
+  "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && node scripts/build.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
