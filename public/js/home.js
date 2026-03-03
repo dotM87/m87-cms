@@ -56,6 +56,10 @@ function renderNews(posts) {
 
 async function loadPosts() {
   const response = await fetch("/api/posts");
+  if (!response.ok) {
+    throw new Error("No se pudieron cargar los posts");
+  }
+
   const posts = await response.json();
 
   if (!posts.length) {
@@ -70,4 +74,6 @@ async function loadPosts() {
 
 initTheme();
 bindThemeToggle("theme-toggle");
-loadPosts();
+loadPosts().catch(() => {
+  renderEmptyState();
+});
