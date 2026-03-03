@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 
-const password = process.argv[2];
+const args = process.argv.slice(2).filter(value => value !== "--");
+const password = args[0];
 
 if (!password) {
   console.error("Uso: pnpm hash:password -- <tu_password>");

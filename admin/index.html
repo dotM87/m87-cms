@@ -125,8 +125,10 @@
         body: JSON.stringify({ username, password })
       });
 
+      const data = await response.json().catch(function() { return {}; });
+
       if (!response.ok) {
-        loginError.textContent = "Credenciales inválidas";
+        loginError.textContent = data.error || "No se pudo iniciar sesión";
         return;
       }
 

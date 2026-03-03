@@ -7,7 +7,7 @@ const matter = require("gray-matter");
 const { marked } = require("marked");
 const { formidable } = require("formidable");
 const sanitizeHtml = require("sanitize-html");
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PROD = NODE_ENV === "production";
