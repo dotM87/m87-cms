@@ -2,11 +2,15 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const matter = require("gray-matter");
 const { marked } = require("marked");
 const { formidable } = require("formidable");
+const sanitizeHtml = require("sanitize-html");
 require("dotenv").config();
 
+const NODE_ENV = process.env.NODE_ENV || "development";
+const IS_PROD = NODE_ENV === "production";
 const PORT = Number(process.env.PORT) || 4321;
 const CONTENT_DIR = path.resolve(__dirname, process.env.CONTENT_DIR || "content");
 const PUBLIC_DIR = path.resolve(__dirname, process.env.PUBLIC_DIR || "public");
@@ -15,11 +19,16 @@ const UPLOADS_PATH = process.env.UPLOADS_PATH || "uploads";
 const UPLOADS_DIR = path.join(PUBLIC_DIR, UPLOADS_PATH);
 
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASS_HASH = process.env.ADMIN_PASS_HASH || "";
 const ADMIN_PASS = process.env.ADMIN_PASS || "admin123";
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS) || 24 * 60 * 60 * 1000;
 const MAX_UPLOAD_SIZE = Number(process.env.MAX_UPLOAD_SIZE) || 5 * 1024 * 1024;
+const COOKIE_SAME_SITE = process.env.COOKIE_SAME_SITE || "Strict";
+const ALLOWED_IMAGE_MIME = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]);
+const ALLOWED_IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
 const sessions = new Map();
+const rateLimitStore = new Map();
 
 if (!fs.existsSync(CONTENT_DIR)) {
   fs.mkdirSync(CONTENT_DIR, { recursive: true });
@@ -34,9 +43,88 @@ marked.setOptions({
   breaks: true
 });
 
+if (IS_PROD && !ADMIN_PASS_HASH && ADMIN_PASS === "admin123") {
+  console.warn("[WARN] Usa ADMIN_PASS_HASH en producción. La contraseña por defecto es insegura.");
+}
+
+function setSecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'");
+
+  if (IS_PROD) {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+}
+
 function sendJson(res, status, payload) {
-  res.writeHead(status, { "Content-Type": "application/json" });
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
+}
+
+function isSecureRequest(req) {
+  if (req.socket && req.socket.encrypted) {
+    return true;
+  }
+
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  if (typeof forwardedProto === "string") {
+    return forwardedProto.split(",")[0].trim().toLowerCase() === "https";
+  }
+
+  return false;
+}
+
+function buildSessionCookie(req, token, maxAgeSeconds) {
+  const cookieParts = [
+    `session=${token}`,
+    "HttpOnly",
+    "Path=/",
+    `Max-Age=${maxAgeSeconds}`,
+    `SameSite=${COOKIE_SAME_SITE}`
+  ];
+
+  if (isSecureRequest(req)) {
+    cookieParts.push("Secure");
+  }
+
+  return cookieParts.join("; ");
+}
+
+function getClientIp(req) {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  if (typeof forwardedFor === "string" && forwardedFor.length > 0) {
+    return forwardedFor.split(",")[0].trim();
+  }
+  return req.socket.remoteAddress || "unknown";
+}
+
+function isRateLimited(req, bucket, limit, windowMs) {
+  const now = Date.now();
+  const key = `${bucket}:${getClientIp(req)}`;
+  const existing = rateLimitStore.get(key);
+
+  if (!existing || existing.expiresAt < now) {
+    rateLimitStore.set(key, { count: 1, expiresAt: now + windowMs });
+    return false;
+  }
+
+  if (existing.count >= limit) {
+    return true;
+  }
+
+  existing.count += 1;
+  rateLimitStore.set(key, existing);
+  return false;
+}
+
+async function verifyAdminPassword(password) {
+  if (ADMIN_PASS_HASH) {
+    return bcrypt.compare(password, ADMIN_PASS_HASH);
+  }
+  return password === ADMIN_PASS;
 }
 
 function parseCookies(cookieHeader = "") {
@@ -155,7 +243,18 @@ function readPostFromFile(fileName) {
     slug,
     metadata,
     markdown: parsed.content,
-    html: marked.parse(parsed.content)
+    html: sanitizeHtml(marked.parse(parsed.content), {
+      allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "h1", "h2", "span"]),
+      allowedAttributes: {
+        a: ["href", "name", "target", "rel"],
+        img: ["src", "alt", "title"],
+        "*": ["class", "id"]
+      },
+      allowedSchemes: ["http", "https", "mailto", "data"],
+      allowedSchemesByTag: {
+        img: ["http", "https", "data"]
+      }
+    })
   };
 }
 
@@ -238,21 +337,29 @@ function servePublicAsset(reqPath, res) {
 
 // -------- SERVER --------
 const server = http.createServer((req, res) => {
+  setSecurityHeaders(res);
+
   const requestUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const pathname = decodeURIComponent(requestUrl.pathname);
 
   // ===== API: ADMIN LOGIN =====
   if (req.method === "POST" && pathname === "/api/admin/login") {
+    if (isRateLimited(req, "login", 10, 15 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Demasiados intentos. Intenta más tarde." });
+    }
+
     readJsonBody(req)
-      .then(({ username, password }) => {
-        if (username !== ADMIN_USER || password !== ADMIN_PASS) {
+      .then(async ({ username, password }) => {
+        const isValidPassword = await verifyAdminPassword(String(password || ""));
+
+        if (username !== ADMIN_USER || !isValidPassword) {
           return sendJson(res, 401, { error: "Credenciales inválidas" });
         }
 
         const token = createSession();
         res.writeHead(200, {
-          "Content-Type": "application/json",
-          "Set-Cookie": `session=${token}; HttpOnly; Path=/; Max-Age=${SESSION_TTL_MS / 1000}; SameSite=Lax`
+          "Content-Type": "application/json; charset=utf-8",
+          "Set-Cookie": buildSessionCookie(req, token, SESSION_TTL_MS / 1000)
         });
         res.end(JSON.stringify({ ok: true }));
       })
@@ -268,8 +375,8 @@ const server = http.createServer((req, res) => {
     }
 
     res.writeHead(200, {
-      "Content-Type": "application/json",
-      "Set-Cookie": "session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax"
+      "Content-Type": "application/json; charset=utf-8",
+      "Set-Cookie": buildSessionCookie(req, "", 0)
     });
     return res.end(JSON.stringify({ ok: true }));
   }
@@ -441,15 +548,19 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    if (isRateLimited(req, "upload", 30, 15 * 60 * 1000)) {
+      return sendJson(res, 429, { error: "Límite de subidas alcanzado temporalmente" });
+    }
+
     const form = formidable({
       multiples: false,
       keepExtensions: true,
       maxFileSize: MAX_UPLOAD_SIZE,
       uploadDir: UPLOADS_DIR,
-      filter: part => part.mimetype && part.mimetype.startsWith("image/")
+      filter: part => part.mimetype && ALLOWED_IMAGE_MIME.has(part.mimetype)
     });
 
-    form.parse(req, (error, fields, files) => {
+    form.parse(req, (error, _fields, files) => {
       if (error) {
         return sendJson(res, 400, { error: "Error al subir imagen" });
       }
@@ -460,6 +571,11 @@ const server = http.createServer((req, res) => {
       }
 
       const extension = path.extname(uploaded.originalFilename || uploaded.newFilename || "").toLowerCase() || ".png";
+      if (!ALLOWED_IMAGE_MIME.has(uploaded.mimetype) || !ALLOWED_IMAGE_EXT.has(extension)) {
+        fs.unlink(uploaded.filepath, () => {});
+        return sendJson(res, 400, { error: "Tipo de archivo no permitido" });
+      }
+
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`;
       const finalPath = path.join(UPLOADS_DIR, fileName);
 

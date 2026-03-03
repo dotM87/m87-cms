@@ -1,19 +1,2 @@
-node_modules/
-dist/
-
-# Env
+node_modules
 .env
-.env.*
-!.env.example
-
-# Logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
-# Runtime artifacts
-public/uploads/
-
-# OS / Editor
-.DS_Store
-.vscode/
