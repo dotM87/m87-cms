@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flat CMS</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="page-container">
+    <header class="page-header page-header--row">
+      <div>
+        <h1>Noticias y Posts</h1>
+        <p class="page-subtitle">Lo más reciente de nuestro portal</p>
+      </div>
+      <button id="theme-toggle" class="btn btn-secondary" type="button">Cambiar tema</button>
+    </header>
+
+    <section id="featured"></section>
+    <section id="posts" class="news-grid"></section>
+  </main>
+
+  <script>
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("theme", theme);
+    }
+
+    function initTheme() {
+      const stored = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      applyTheme(stored || (prefersDark ? "dark" : "light"));
+    }
+
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      applyTheme(current === "light" ? "dark" : "light");
+    });
+
+    initTheme();
+
+    fetch("/api/posts")
+      .then(res => res.json())
+      .then(posts => {
+        const featured = document.getElementById("featured");
+        const container = document.getElementById("posts");
+
+        if (!posts.length) {
+          featured.innerHTML = '<article class="hero-card"><div class="hero-content"><h2>Sin publicaciones</h2><p class="post-meta">Aún no hay contenido para mostrar.</p></div></article>';
+          return;
+        }
+
+        const [leadPost, ...rest] = posts;
+        const leadAuthor = leadPost.author || "Sin autor";
+        const leadWhen = new Date(leadPost.date).toLocaleString();
+        const leadTitle = leadPost.title || leadPost.slug;
+        const leadImage = leadPost.coverImage || "";
+        const leadExcerpt = leadPost.excerpt || "Contenido destacado del día.";
+
+        featured.innerHTML = `
+          <article class="hero-card">
+            ${leadImage
+              ? `<a href="/post?slug=${leadPost.slug}" class="hero-media-link"><img src="${leadImage}" alt="${leadTitle}" class="hero-media" /></a>`
+              : `<a href="/post?slug=${leadPost.slug}" class="hero-media-link hero-media-placeholder" aria-label="${leadTitle}"></a>`}
+            <div class="hero-content">
+              <p class="kicker">Destacado</p>
+              <h2 class="hero-title"><a href="/post?slug=${leadPost.slug}">${leadTitle}</a></h2>
+              <p class="hero-excerpt">${leadExcerpt}</p>
+              <p class="post-meta">${leadAuthor} · ${leadWhen}</p>
+            </div>
+          </article>
+        `;
+
+        rest.forEach(post => {
+          const author = post.author || "Sin autor";
+          const when = new Date(post.date).toLocaleString();
+          const title = post.title || post.slug;
+          const image = post.coverImage || "";
+          const excerpt = post.excerpt || "Lee la noticia completa para más detalles.";
+          container.innerHTML += `
+            <article class="news-card">
+              ${image
+                ? `<a href="/post?slug=${post.slug}" class="news-media-link"><img src="${image}" alt="${title}" class="news-media" /></a>`
+                : `<a href="/post?slug=${post.slug}" class="news-media-link news-media-placeholder" aria-label="${title}"></a>`}
+              <div class="news-body">
+                <h2 class="post-title">
+                  <a href="/post?slug=${post.slug}">${title}</a>
+                </h2>
+                <p class="news-excerpt">${excerpt}</p>
+                <p class="post-meta">${author} · ${when}</p>
+              </div>
+            </article>
+          `;
+        });
+      });
+  </script>
+</body>
+</html>
